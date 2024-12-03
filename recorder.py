@@ -19,8 +19,9 @@ def start_recorder():
     file = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}.mov'
     ffmpeg = subprocess.Popen(shlex.split(
         f'ffmpeg -hide_banner -loglevel error -y -i {secret.RTSP} ' +
-        f'-vcodec copy -acodec copy {file} ' +
-        f'-vcodec copy -acodec copy -hls_list_size 5 -hls_flags delete_segments -f hls www/hls.m3u8'))
+        f'-vcodec copy -acodec copy {file} ' + ''))
+        # todo: add --ui flag
+        # f'-vcodec copy -acodec copy -hls_list_size 5 -hls_flags delete_segments -f hls www/hls.m3u8'))
 
     print(f'Started recording to {file}')
 
@@ -50,6 +51,9 @@ def on_message(client, userdata, msg: bytes):
     json_object = json.loads(decoded)
 
     if 'info' in json_object: return
+    if 'print' not in json_object:
+        print('Unhandled json:', json_object)
+        return
 
     print_object = json_object['print']
     gcode_state = utilities.get_or_none(print_object, 'gcode_state')
@@ -104,7 +108,21 @@ client.connect(secret.IP, 8883)
 try:
     client.loop_forever()
 except KeyboardInterrupt:
+    print('Stopping MQTT client')
     client.disconnect_callback()
-    stop_recorder(recorder)
 
-    print('bye!')
+    if recorder is not None:
+        print('Stopping FFmpeg recorder')
+        stop_recorder(recorder)
+
+    print('Bye!')
+except Exception as error:
+    print('Crashed!')
+    print(error)
+
+    print('Stopping MQTT client')
+    client.disconnect_callback()
+
+    if recorder is not None:
+        print('Stopping FFmpeg recorder')
+        stop_recorder(recorder)
