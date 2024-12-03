@@ -3,6 +3,7 @@ import json
 import paho.mqtt.client as mqtt
 import secret
 
+is_printing = False
 msg_i = 0
 
 def on_connect(client, userdata, flags, reason_code, properties):
