@@ -1,6 +1,7 @@
 import argparse
 import asyncio
-import secret
+import core
+import core.bambu_mqtt_credentials
 import core.mqtt_channel
 import signal
 import subprocess
@@ -22,12 +23,12 @@ class Recorder:
         except ValueError:
             self.ffmpeg.terminate()
 
-async def main():
+async def main(args: argparse.Namespace):
     recorder_instance: Recorder = None
     print_job_name: str = None
     layer_num = 0
     total_layers = 0
-    channel = await core.mqtt_channel.open()
+    channel = await core.mqtt_channel.open(core.bambu_mqtt_credentials.parse(args))
 
     async for msg in channel:
         if 'info' in msg: continue
@@ -64,12 +65,15 @@ async def main():
             layer_num = None
 
         if recorder_instance is None and should_start:
-            recorder_instance = Recorder(secret.RTSP)
+            recorder_instance = Recorder(args.camera_source)
             print(f'Opening {recorder_instance.file} file')
 
 parser = argparse.ArgumentParser(
-    prog='ProgramName',
-    description='What the program does',
-    epilog='Text at the bottom of help')
+    prog='recorder.py',
+    description='Creates records from an IP camera using the RT(S)P protocol. Recording begins when printing starts and ends when printing stops or completes.')
 
-asyncio.run(main())
+core.add_core_arguments(parser)
+parser.add_argument('-s', '--camera-source', required=True, help="Camera source. Eg. 'rtp://192.168.1.1' or 'rtsp://user:password@192.168.1.1/stream1'")
+args = parser.parse_args()
+
+asyncio.run(main(args))

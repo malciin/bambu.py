@@ -2,15 +2,16 @@ from __future__ import annotations
 import json
 import ssl
 import paho.mqtt.client as mqtt
-import secret
 import asyncio
 from dataclasses import dataclass
+from core.bambu_mqtt_credentials import BambuMqttCredentials
 
 @dataclass
 class UserData:
     connection_future: asyncio.Event
     queue: asyncio.Queue
     loop: asyncio.AbstractEventLoop
+    serial_number: str
 
 class Channel:
     def __init__(self, client: mqtt.Client, message_queue: asyncio.Queue):
@@ -38,7 +39,7 @@ async def __set_event(event: asyncio.Event):
 def __on_connect(client, userdata: UserData, flags, reason_code, properties):
     print(f"Connected with result code {reason_code}")
     asyncio.run_coroutine_threadsafe(__set_event(userdata.connection_future), userdata.loop)
-    client.subscribe(f"device/{secret.SERIAL_NUMBER}/report")
+    client.subscribe(f"device/{userdata.serial_number}/report")
 
 def __on_message(client, userdata: UserData, msg: bytes):
     decoded = msg.payload.decode('utf8')
@@ -55,7 +56,7 @@ def __on_disconnect(client, userdata, disconnect_flags, reason_code, properties)
 def __on_log(client, userdata, level, buf):
     pass
 
-async def open() -> Channel:
+async def open(credentials: BambuMqttCredentials) -> Channel:
     message_queue = asyncio.Queue()
     client = mqtt.Client(
         callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
@@ -64,7 +65,8 @@ async def open() -> Channel:
     user_data = UserData(
         connection_future=asyncio.Event(),
         queue=message_queue,
-        loop=asyncio.get_running_loop())
+        loop=asyncio.get_running_loop(),
+        serial_number=credentials.serial_number)
     client.user_data_set(user_data)
 
     client.tls_set(cert_reqs=ssl.CERT_NONE) # https://github.com/eclipse-paho/paho.mqtt.python/issues/85#issuecomment-250612020
@@ -74,8 +76,8 @@ async def open() -> Channel:
     client.on_log = __on_log
     client.on_connect_fail = __connect_fail_callback
     client.on_disconnect = __on_disconnect
-    client.username_pw_set('bblp', secret.ACCESS_CODE)
-    client.connect(secret.IP, 8883)
+    client.username_pw_set('bblp', credentials.access_code)
+    client.connect(credentials.ip, 8883)
     client.loop_start()
 
     await user_data.connection_future.wait()
