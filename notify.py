@@ -3,9 +3,14 @@ import asyncio
 import core
 import core.mqtt_channel
 import core.bambu_mqtt_credentials
+import os
 from win11toast import toast
 
 printing_started = False
+notification_path = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    'resources',
+    'notification.en.wav')
 
 async def handle(channel: core.mqtt_channel.Channel):
     global printing_started
@@ -15,7 +20,7 @@ async def handle(channel: core.mqtt_channel.Channel):
 
         if printing_started and core.is_not_printing_for_sure(msg):
             print('Detected end! Firing notification')
-            toast('Print job', 'Print job completed!')
+            toast('Print job', 'Print job completed!', audio=notification_path)
             printing_started = False
 
         if not printing_started and core.is_printing_for_sure(msg):
