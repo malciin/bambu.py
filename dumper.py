@@ -1,45 +1,35 @@
-import ssl
+"""
+    Simple debugging program that dumps all messages from MQTT to ./mqtt folder.
+"""
+
+import argparse
+import asyncio
 import json
-import paho.mqtt.client as mqtt
-import secret
+import core
+import core.mqtt_channel
+import core.bambu_mqtt_credentials
+import os
+from datetime import datetime
 
-is_printing = False
-msg_i = 0
+async def main(args: argparse.Namespace):
+    with await core.mqtt_channel.open(core.bambu_mqtt_credentials.parse(args)) as ch:
+        try:
+            await handle(ch)
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            print('Stopping...')
+    print('Bye!')
 
-def on_connect(client, userdata, flags, reason_code, properties):
-    print(f"Connected with result code {reason_code}")
-    client.subscribe(f"device/{secret.SERIAL_NUMBER}/report")
+async def handle(channel: core.mqtt_channel.Channel):
+    os.makedirs('mqtt', exist_ok=True)
+    async for msg in channel:
+        msg_timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        print(msg_timestamp, msg)
+        with open(f'mqtt/{msg_timestamp}.json', 'w', encoding='utf8') as f:
+            f.write(json.dumps(msg, indent=2))
 
-def on_message(client, userdata, msg: bytes):
-    global msg_i
-
-    decoded = msg.payload.decode('utf8')
-    print(f'[{msg_i:06}] {msg.topic}: {decoded}')
-    json_object = json.loads(decoded)
-    with open(f'mqtt/{msg_i:06}.json', 'w', encoding='utf8') as f:
-        f.write(json.dumps(json_object, indent=2))
-    msg_i += 1
-
-def connect_fail_callback(client, userdata):
-    print('fail')
-
-def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
-    print('dc', disconnect_flags, properties, reason_code)
-    pass
-
-def on_log(client, userdata, level, buf):
-    print(level, buf)
-
-client = mqtt.Client(
-    callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-    protocol=mqtt.MQTTv311)
-client.tls_set(cert_reqs=ssl.CERT_NONE) # https://github.com/eclipse-paho/paho.mqtt.python/issues/85#issuecomment-250612020
-client.tls_insecure_set(True)
-client.on_connect = on_connect
-client.on_message = on_message
-# client.on_log = on_log
-client.on_connect_fail = connect_fail_callback
-client.on_disconnect = on_disconnect
-client.username_pw_set('bblp', secret.ACCESS_CODE)
-client.connect(secret.IP, 8883)
-client.loop_forever()
+parser = argparse.ArgumentParser(
+    prog='notification.py',
+    description='Sends windows 10/11 notifications about printing end.')
+core.add_core_arguments(parser)
+args = parser.parse_args()
+asyncio.run(main(args))
