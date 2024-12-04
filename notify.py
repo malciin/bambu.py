@@ -3,29 +3,23 @@ import asyncio
 import core
 import core.mqtt_channel
 import core.bambu_mqtt_credentials
-from core.utilities import get_or_none
 from win11toast import toast
 
-started = False
+printing_started = False
 
 async def handle(channel: core.mqtt_channel.Channel):
-    global started
+    global printing_started
 
     async for msg in channel:
         if 'print' not in msg: continue
 
-        print_object = msg['print']
-        gcode_state = get_or_none(print_object, 'gcode_state')
-        print_in_progress = ('mc_print_line_number' in print_object and gcode_state == None) or gcode_state == 'PREPARE' or gcode_state == 'RUNNING'
-        print_done = gcode_state == 'FINISH' or gcode_state == 'FAILED' or (get_or_none(print_object, 'command') == 'stop' and get_or_none(print_object, 'result') == 'success')
-
-        if started and print_done:
+        if printing_started and core.is_not_printing_for_sure(msg):
             print('Detected end! Firing notification')
             toast('Print job', 'Print job completed!')
-            started = False
+            printing_started = False
 
-        if not started and print_in_progress:
-            started = True
+        if not printing_started and core.is_printing_for_sure(msg):
+            printing_started = True
             print('Detected inprogress print')
 
 async def main(args: argparse.Namespace):

@@ -57,25 +57,27 @@ def __on_log(client, userdata, level, buf):
     pass
 
 async def open(credentials: BambuMqttCredentials) -> Channel:
-    message_queue = asyncio.Queue()
     client = mqtt.Client(
         callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
         protocol=mqtt.MQTTv311)
+
+    message_queue = asyncio.Queue()
     message_channel = Channel(client, message_queue)
     user_data = UserData(
         connection_future=asyncio.Event(),
         queue=message_queue,
         loop=asyncio.get_running_loop(),
         serial_number=credentials.serial_number)
-    client.user_data_set(user_data)
 
-    client.tls_set(cert_reqs=ssl.CERT_NONE) # https://github.com/eclipse-paho/paho.mqtt.python/issues/85#issuecomment-250612020
-    client.tls_insecure_set(True)
     client.on_connect = __on_connect
     client.on_message = __on_message
     client.on_log = __on_log
     client.on_connect_fail = __connect_fail_callback
     client.on_disconnect = __on_disconnect
+
+    client.user_data_set(user_data)
+    client.tls_set(cert_reqs=ssl.CERT_NONE) # https://github.com/eclipse-paho/paho.mqtt.python/issues/85#issuecomment-250612020
+    client.tls_insecure_set(True)
     client.username_pw_set('bblp', credentials.access_code)
     client.connect(credentials.ip, 8883)
     client.loop_start()

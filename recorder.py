@@ -6,7 +6,6 @@ import core.mqtt_channel
 import signal
 import subprocess
 import shlex
-from core.utilities import get_or_none
 from datetime import datetime
 
 class Recorder:
@@ -58,9 +57,6 @@ async def handle(recorder: Recorder, channel: core.mqtt_channel.Channel):
             continue
 
         print_object = msg['print']
-        gcode_state = get_or_none(print_object, 'gcode_state')
-        should_start = ('mc_print_line_number' in print_object and gcode_state == None) or gcode_state == 'PREPARE' or gcode_state == 'RUNNING'
-        should_end = gcode_state == 'FINISH' or gcode_state == 'FAILED' or (get_or_none(print_object, 'command') == 'stop' and get_or_none(print_object, 'result') == 'success')
 
         if 'gcode_file' in print_object:
             print_job_name = print_object['gcode_file']
@@ -74,7 +70,7 @@ async def handle(recorder: Recorder, channel: core.mqtt_channel.Channel):
             if recorder.started and total_layers != 0 and print_job_name.endswith('.3mf'):
                 print(f'{print_job_name} L: {layer_num}/{total_layers}')
 
-        if recorder.started and should_end:
+        if recorder.started and core.is_not_printing_for_sure(msg):
             recorder.stop()
             print(f'File {recorder.file} finished!')
             print('Waiting patiently for next print!')
@@ -82,7 +78,7 @@ async def handle(recorder: Recorder, channel: core.mqtt_channel.Channel):
             total_layers = None
             layer_num = None
 
-        if not recorder.started and should_start:
+        if not recorder.started and core.is_printing_for_sure(msg):
             recorder.start()
             print(f'Opening {recorder.file} file')
 
