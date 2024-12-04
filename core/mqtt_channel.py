@@ -33,7 +33,6 @@ class Channel:
         return self.__message_queue.get()
 
 async def __set_event(event: asyncio.Event):
-    if event.is_set(): return
     event.set()
 
 def __on_connect(client, userdata: UserData, flags, reason_code, properties):
