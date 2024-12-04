@@ -2,4 +2,4 @@ secret.py
 mqtt
 __pycache__
 www
-*.mov
+*.avi

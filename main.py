@@ -13,10 +13,11 @@ print_job_name: str = None
 file: str = None
 layer: int = 0
 total_layers = 0
+layer_num = 0
 
 def start_recorder():
     global file
-    file = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}.mov'
+    file = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}.avi'
     ffmpeg = subprocess.Popen(shlex.split(
         f'ffmpeg -hide_banner -loglevel error -y -i {secret.RTSP} ' +
         f'-vcodec copy -acodec copy {file} ' + ''))
@@ -46,19 +47,25 @@ def on_message(client, userdata, msg: bytes):
     global recorder
     global print_job_name
     global total_layers
+    global layer_num
 
     decoded = msg.payload.decode('utf8')
     json_object = json.loads(decoded)
 
+    # with open(f'log/{datetime.now().strftime("%Y%m%d-%H%M%S.%f")}.json', 'w', encoding='utf8') as f:
+    #     f.write(json.dumps(json_object, indent=2))
+
     if 'info' in json_object: return
+    if 'system' in json_object: return
+    if 'liveview' in json_object: return
     if 'print' not in json_object:
         print('Unhandled json:', json_object)
         return
 
     print_object = json_object['print']
     gcode_state = utilities.get_or_none(print_object, 'gcode_state')
-    should_start = 'mc_print_line_number' in print_object or gcode_state == 'PREPARE' or gcode_state == 'RUNNING'
-    should_end = gcode_state == 'FINISH'
+    should_start = ('mc_print_line_number' in print_object and gcode_state == None) or gcode_state == 'PREPARE' or gcode_state == 'RUNNING'
+    should_end = gcode_state == 'FINISH' or gcode_state == 'FAILED' or (utilities.get_or_none(print_object, 'command') == 'stop' and utilities.get_or_none(print_object, 'result') == 'success')
 
     # print(should_start, should_end, json_object)
 
@@ -71,13 +78,16 @@ def on_message(client, userdata, msg: bytes):
     if 'layer_num' in print_object:
         layer_num = print_object['layer_num']
 
-        print(f'L: {layer_num}/{total_layers}')
+        if recorder is not None and total_layers != 0:
+            print(f'L: {layer_num}/{total_layers}')
 
     if recorder is not None and should_end:
         stop_recorder(recorder)
         print('Waiting patiently for next print!')
         recorder = None
         print_job_name = None
+        total_layers = None
+        layer_num = None
 
     if recorder is None and should_start:
         recorder = start_recorder()
