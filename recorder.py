@@ -92,9 +92,7 @@ async def main(args: argparse.Namespace):
 
         try:
             await handle(r, ch)
-        except KeyboardInterrupt:
-            print('Stopping...')
-        except asyncio.CancelledError:
+        except (KeyboardInterrupt, asyncio.CancelledError):
             print('Stopping...')
     print('Bye!')
 
