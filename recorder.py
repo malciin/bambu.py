@@ -10,25 +10,44 @@ from core.utilities import get_or_none
 from datetime import datetime
 
 class Recorder:
+    @property
+    def started(self):
+        return self.ffmpeg is not None
+
     def __init__(self, source: str):
+        self.source = source
+        self.file: str = None
+        self.ffmpeg: subprocess.Popen = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        if self.started:
+            print(f'Gracefully stopping record {self.file}')
+        
+        self.stop()
+
+    def start(self):
         self.file = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}.avi'
         self.ffmpeg = subprocess.Popen(shlex.split(
-            f'ffmpeg -hide_banner -loglevel error -y -i {source} ' +
+            f'ffmpeg -hide_banner -loglevel error -y -i {self.source} ' +
             f'-vcodec copy -acodec copy {self.file} ' + ''))
 
-    def dispose(self):
+    def stop(self):
+        if not self.started: return
+
         # https://github.com/apache/beam/pull/31574/files
         try:
             self.ffmpeg.send_signal(signal.SIGINT)
         except ValueError:
             self.ffmpeg.terminate()
+        self.ffmpeg = None
 
-async def main(args: argparse.Namespace):
-    recorder_instance: Recorder = None
+async def handle(recorder: Recorder, channel: core.mqtt_channel.Channel):
     print_job_name: str = None
     layer_num = 0
     total_layers = 0
-    channel = await core.mqtt_channel.open(core.bambu_mqtt_credentials.parse(args))
 
     async for msg in channel:
         if 'info' in msg: continue
@@ -52,21 +71,32 @@ async def main(args: argparse.Namespace):
         if 'layer_num' in print_object:
             layer_num = print_object['layer_num']
 
-            if recorder_instance is not None and total_layers != 0 and print_job_name.endswith('.3mf'):
+            if recorder.started and total_layers != 0 and print_job_name.endswith('.3mf'):
                 print(f'{print_job_name} L: {layer_num}/{total_layers}')
 
-        if recorder_instance is not None and should_end:
-            recorder_instance.dispose()
-            print(f'File {recorder_instance.file} finished!')
+        if recorder.started and should_end:
+            recorder.stop()
+            print(f'File {recorder.file} finished!')
             print('Waiting patiently for next print!')
-            recorder_instance = None
             print_job_name = None
             total_layers = None
             layer_num = None
 
-        if recorder_instance is None and should_start:
-            recorder_instance = Recorder(args.camera_source)
-            print(f'Opening {recorder_instance.file} file')
+        if not recorder.started and should_start:
+            recorder.start()
+            print(f'Opening {recorder.file} file')
+
+async def main(args: argparse.Namespace):
+    with Recorder(args.camera_source) as r, \
+        await core.mqtt_channel.open(core.bambu_mqtt_credentials.parse(args)) as ch:
+
+        try:
+            await handle(r, ch)
+        except KeyboardInterrupt:
+            print('Stopping...')
+        except asyncio.CancelledError:
+            print('Stopping...')
+    print('Bye!')
 
 parser = argparse.ArgumentParser(
     prog='recorder.py',
