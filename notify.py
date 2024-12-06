@@ -36,7 +36,7 @@ async def main(args: argparse.Namespace):
     print('Bye!')
 
 parser = argparse.ArgumentParser(
-    prog='notification.py',
+    prog=os.path.basename(__file__),
     description='Sends windows 10/11 notifications about printing end.')
 core.add_core_arguments(parser)
 args = parser.parse_args()

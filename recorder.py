@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 import core
 import core.bambu_mqtt_credentials
 import core.mqtt_channel
@@ -93,7 +94,7 @@ async def main(args: argparse.Namespace):
     print('Bye!')
 
 parser = argparse.ArgumentParser(
-    prog='recorder.py',
+    prog=os.path.basename(__file__),
     description='Creates records from an IP camera using the RT(S)P protocol. Recording begins when printing starts and ends when printing stops or completes.')
 
 core.add_core_arguments(parser)
