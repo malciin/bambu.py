@@ -40,5 +40,5 @@ async def main(args: argparse.Namespace):
             print('Stopping...')
     print('Bye!')
 
-bootstrapper = Bootstrapper(script_description='Sends windows 10/11 notifications about printing end.')
+bootstrapper = Bootstrapper(script_description='Sends Windows 10/11 toast notifications when printing is complete.')
 bootstrapper.run(main)
