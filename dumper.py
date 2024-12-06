@@ -10,6 +10,7 @@ import core.mqtt_channel
 import core.bambu_mqtt_credentials
 import os
 from datetime import datetime
+from core.bootstrapper import Bootstrapper
 
 async def main(args: argparse.Namespace):
     with await core.mqtt_channel.open(core.bambu_mqtt_credentials.parse(args)) as ch:
@@ -27,9 +28,5 @@ async def handle(channel: core.mqtt_channel.Channel):
         with open(f'mqtt/{msg_timestamp}.json', 'w', encoding='utf8') as f:
             f.write(json.dumps(msg, indent=2))
 
-parser = argparse.ArgumentParser(
-    prog=os.path.basename(__file__),
-    description='Sends windows 10/11 notifications about printing end.')
-core.add_core_arguments(parser)
-args = parser.parse_args()
-asyncio.run(main(args))
+bootstrapper = Bootstrapper('Dumps every mqtt messages from printer to mqtt folder.')
+bootstrapper.run(main)

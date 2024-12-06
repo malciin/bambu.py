@@ -1,3 +1,7 @@
+"""
+    Sends windows 10/11 toast messages about printing end
+"""
+
 import argparse
 import asyncio
 import core
@@ -5,6 +9,7 @@ import core.mqtt_channel
 import core.bambu_mqtt_credentials
 import os
 from win11toast import toast
+from core.bootstrapper import Bootstrapper
 
 printing_started = False
 notification_path = os.path.join(
@@ -35,9 +40,5 @@ async def main(args: argparse.Namespace):
             print('Stopping...')
     print('Bye!')
 
-parser = argparse.ArgumentParser(
-    prog=os.path.basename(__file__),
-    description='Sends windows 10/11 notifications about printing end.')
-core.add_core_arguments(parser)
-args = parser.parse_args()
-asyncio.run(main(args))
+bootstrapper = Bootstrapper(script_description='Sends windows 10/11 notifications about printing end.')
+bootstrapper.run(main)
