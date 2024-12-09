@@ -20,11 +20,7 @@ Every script have help via `--help` option. Just write `python3 XYZ.py --help`.
 
 <img src="./resources/870n5bIcCG.png" />
 
-<audio controls="controls">
-  <source type="audio/wav" src="./resources/notification.en.wav"></source>
-</audio>
-
-Sends Windows 10/11 toast notifications when printing is complete.
+Sends Windows 10/11 toast notifications when printing is complete or paused (filament end, tangle etc).
 
 Example usage:
 

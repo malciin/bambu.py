@@ -12,8 +12,8 @@ from win11toast import toast
 from core.bootstrapper import Bootstrapper
 
 resources_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
-notification_path = os.path.join(resources_path, 'notification.en.wav')
-stopped_path = os.path.join(resources_path, 'print-stopped.en.wav')
+print_completed_path = os.path.join(resources_path, 'print-completed.en.wav')
+print_paused_path = os.path.join(resources_path, 'print-stopped.en.wav')
 
 async def handle(channel: core.mqtt_channel.Channel):
     printing_started = False
@@ -24,7 +24,7 @@ async def handle(channel: core.mqtt_channel.Channel):
 
         if printing_started and core.is_not_printing_for_sure(msg):
             print('Detected end! Firing notification')
-            toast('Print job', 'Print job completed!', audio=notification_path)
+            toast('Print job', 'Print job completed!', audio=print_completed_path)
             printing_started = False
 
         if not printing_started and core.is_printing_for_sure(msg):
@@ -36,10 +36,10 @@ async def handle(channel: core.mqtt_channel.Channel):
             print('Pause resolved!')
             pause_alert_sent = False
 
-        if printing_started and core.is_paused(msg) and not pause_alert_sent:
+        if not pause_alert_sent and core.is_paused(msg):
             pause_alert_sent = True
             print('Detected paused print! Firing notification')
-            toast('Print job', 'Print stopped. Please check your printer!', audio=stopped_path)
+            toast('Print job', 'Print paused. Please check your printer!', audio=print_paused_path)
 
 async def main(args: argparse.Namespace):
     with await core.mqtt_channel.open(core.bambu_mqtt_credentials.parse(args)) as ch:
@@ -49,5 +49,5 @@ async def main(args: argparse.Namespace):
             print('Stopping...')
     print('Bye!')
 
-bootstrapper = Bootstrapper(script_description='Sends Windows 10/11 toast notifications when printing is complete or stopped.')
+bootstrapper = Bootstrapper(script_description='Sends Windows 10/11 toast notifications when printing is complete or paused.')
 bootstrapper.run(main)
