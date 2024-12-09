@@ -11,3 +11,17 @@ def is_not_printing_for_sure(mqtt_msg: any):
     gcode_state = get_or_none(print_object, 'gcode_state')
     
     return gcode_state == 'FINISH' or gcode_state == 'FAILED' or (get_or_none(print_object, 'command') == 'stop' and get_or_none(print_object, 'result') == 'success')
+
+def is_paused(mqtt_msg: any):
+    print_object = mqtt_msg['print']
+    gcode_state = get_or_none(print_object, 'gcode_state')
+
+    return gcode_state == 'PAUSE'
+
+def is_not_paused_for_sure(mqtt_msg: any):
+    print_object = mqtt_msg['print']
+    gcode_state = get_or_none(print_object, 'gcode_state')
+
+    if gcode_state is None: return False
+
+    return gcode_state != 'PAUSE'
