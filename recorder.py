@@ -93,6 +93,6 @@ async def main(args: argparse.Namespace):
             print('Stopping...')
     print('Bye!')
 
-bootstrapper = Bootstrapper('Creates records from an IP camera using the RT(S)P protocol. Recording begins when printing starts and ends when printing stops or completes.')
+bootstrapper = Bootstrapper('Creates records from an external IP camera using the RT(S)P protocol. Recording begins when printing starts and ends when printing stops or completes.')
 bootstrapper.add_argument('-s', '--camera-source', "Camera source. Eg. 'rtp://192.168.1.1' or 'rtsp://user:password@192.168.1.1/stream1'")
 bootstrapper.run(main)

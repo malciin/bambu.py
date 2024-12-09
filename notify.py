@@ -11,14 +11,13 @@ import os
 from win11toast import toast
 from core.bootstrapper import Bootstrapper
 
-printing_started = False
 notification_path = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     'resources',
     'notification.en.wav')
 
 async def handle(channel: core.mqtt_channel.Channel):
-    global printing_started
+    printing_started = False
 
     async for msg in channel:
         if 'print' not in msg: continue
