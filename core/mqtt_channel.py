@@ -92,7 +92,7 @@ def __on_message(client, userdata: UserData, msg: bytes):
     asyncio.run_coroutine_threadsafe(userdata.queue.put(json_object), userdata.loop)
 
 def __connect_fail_callback(client, userdata: UserData):
-    print('fail')
+    print(f'Failed to connect to {userdata.credentials.ip}. Trying to reconnect...')
 
 def __on_disconnect(client, userdata: UserData, disconnect_flags, reason_code, properties):
     # if we disconnected before receiving any message its a sign of bad serial code

@@ -13,7 +13,7 @@ from core.bootstrapper import Bootstrapper
 
 resources_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
 print_completed_path = os.path.join(resources_path, 'print-completed.en.wav')
-print_paused_path = os.path.join(resources_path, 'print-stopped.en.wav')
+print_paused_path = os.path.join(resources_path, 'print-paused.en.wav')
 
 async def handle(channel: core.mqtt_channel.Channel):
     printing_started = False
